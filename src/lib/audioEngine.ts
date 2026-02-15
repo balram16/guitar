@@ -89,13 +89,13 @@ class GuitarEngine {
             preDelay: 0.01,
         });
 
-        this.masterGain = new Tone.Gain(1.8);
+        this.masterGain = new Tone.Gain(1.3);
         this.limiter = new Tone.Limiter(-0.5);
 
-        // Nylon — warm body foundation (LOUD)
-        this.nylonGain = new Tone.Gain(1.0);
-        // Steel — crisp bright attack (LOUD)
-        this.steelGain = new Tone.Gain(0.9);
+        // Nylon — warm body foundation
+        this.nylonGain = new Tone.Gain(0.85);
+        // Steel — crisp bright attack
+        this.steelGain = new Tone.Gain(0.7);
 
         const loadPromise = new Promise<void>((resolve) => {
             const checkLoaded = () => {
@@ -158,8 +158,8 @@ class GuitarEngine {
     // Volume control — 0 to 100 slider, maps to gain
     setVolume(percent: number) {
         const clamped = Math.max(0, Math.min(100, percent));
-        // Convert percentage to gain (0-100 → 0.0-2.5)
-        const gain = (clamped / 100) * 2.5;
+        // Convert percentage to gain (0-100 → 0.0-1.5)
+        const gain = (clamped / 100) * 1.5;
         if (this.masterGain) {
             this.masterGain.gain.rampTo(gain, 0.05);
         }
@@ -250,6 +250,12 @@ class GuitarEngine {
         const notes = getChordNotes(this.activeChord, this.capo);
         if (notes.length === 0) return;
 
+        // CRITICAL: Release previous notes to prevent polyphony buildup (causes static/crackling)
+        // Short 20ms fadeout so it's not an abrupt cut
+        const releaseTime = Tone.now();
+        this.nylonSampler!.releaseAll(releaseTime + 0.02);
+        this.steelSampler?.releaseAll(releaseTime + 0.02);
+
         // Order: down = low to high, up = high to low
         const orderedNotes = direction === "D" ? [...notes] : [...notes].reverse();
 
@@ -282,14 +288,14 @@ class GuitarEngine {
 
             const triggerTime = now + delay + humanize;
 
-            // Natural note duration — let strings ring
+            // Shorter note duration to prevent polyphony buildup
             this.nylonSampler!.triggerAttackRelease(
-                note, "2n", triggerTime, velocity
+                note, "4n", triggerTime, velocity
             );
 
             if (this.steelSampler && this.loaded) {
                 this.steelSampler.triggerAttackRelease(
-                    note, "2n", triggerTime, velocity * 0.75
+                    note, "4n", triggerTime, velocity * 0.65
                 );
             }
         });
