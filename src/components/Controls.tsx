@@ -109,7 +109,7 @@ export default function Controls() {
             {/* Switch Mode */}
             <div>
                 <label className="block text-xs text-gray-400 mb-1.5">
-                    Chord Switch Mode
+                    Chord Mode
                 </label>
                 <div className="flex gap-2">
                     <button
